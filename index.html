@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.0/dist/ethers.umd.min.js"></script>
+ 
+    <script src="script.js"></script>
+</head>
+<body>
+    <div>
+        <h1>CoinFlip dApp</h1>
+        <p>Play a coin-flip game using Ethereum smart contracts!</p>
+
+        <button id="connectWallet">Connect Wallet</button>
+        <p id="walletAddress">Wallet not connected</p>
+
+        <h3>Place Your Bet</h3>
+        <label for="betAmount">Bet Amount (in ETH):</label>
+        <input type="text" id="betAmount" />
+        <br />
+
+        <label for="playerChoice">Your Choice:</label>
+        <select id="playerChoice">
+            <option value="0">Rock</option>
+            <option value="1">Paper</option>
+            <option value="2">Scissors</option>
+        </select>
+        <br />
+
+        <button id="playGame">Play Game</button>
+        <p id="gameResult"></p>
+
+        <h3>Check Contract</h3>
+        <button id="checkBalance">Check Contract Balance</button>
+        <p id="contractBalance">Contract Balance: </p>
+    </div>
+</body>
+</html>
