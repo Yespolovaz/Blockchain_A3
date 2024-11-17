@@ -2,41 +2,126 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>RPS Game</title>
     <link rel="stylesheet" href="style.css">
-
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.0/dist/ethers.umd.min.js"></script>
- 
-    <script src="script.js"></script>
 </head>
 <body>
     <div>
-        <h1>CoinFlip dApp</h1>
-        <p>Play a coin-flip game using Ethereum smart contracts!</p>
+        <h1>Rock Paper Scissors Game</h1>
+        <p>0 = Rock, 1 = Paper, 2 = Scissors</p>
+        <button onclick="connectWallet()">Connect MetaMask</button>
+        <p>Connected Account: <span id="account">Not connected</span></p>
+        <hr>
 
-        <button id="connectWallet">Connect Wallet</button>
-        <p id="walletAddress">Wallet not connected</p>
-
-        <h3>Place Your Bet</h3>
+        <h2>Play the Game</h2>
         <label for="betAmount">Bet Amount (in ETH):</label>
         <input type="text" id="betAmount" />
-        <br />
+        <label for="choice">Your Choice (0, 1, or 2):</label>
+        <input type="number" id="choice" min="0" max="2" />
+        <button onclick="playGame()">Play</button>
+        <p>Game Result: <span id="gameResult"></span></p>
+        <hr>
 
-        <label for="playerChoice">Your Choice:</label>
-        <select id="playerChoice">
-            <option value="0">Rock</option>
-            <option value="1">Paper</option>
-            <option value="2">Scissors</option>
-        </select>
-        <br />
+        <h2>Owner Actions</h2>
+        <button onclick="depositFunds()">Deposit Funds</button>
+        <label for="withdrawAmount">Withdraw Amount (in ETH):</label>
+        <input type="text" id="withdrawAmount" />
+        <button onclick="withdrawFunds()">Withdraw</button>
+        <hr>
 
-        <button id="playGame">Play Game</button>
-        <p id="gameResult"></p>
-
-        <h3>Check Contract</h3>
-        <button id="checkBalance">Check Contract Balance</button>
-        <p id="contractBalance">Contract Balance: </p>
+        <h2>Contract Info</h2>
+        <button onclick="getContractBalance()">Get Contract Balance</button>
+        <p>Contract Balance: <span id="contractBalance"></span></p>
     </div>
+
+    <script>
+        let provider;
+        let signer;
+        let contract;
+
+        const contractAddress = "0x412A5d897892433050EC4Ed6F72D947FDe02Ca66";
+        const abi = [{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"player","type":"address"},{"indexed":false,"internalType":"uint256","name":"betAmount","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"choice","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"result","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"payout","type":"uint256"}],"name":"GameResult","type":"event"},{"inputs":[],"name":"depositFunds","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"uint256","name":"_bet","type":"uint256"},{"internalType":"uint256","name":"_choice","type":"uint256"}],"name":"flip","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"getContractBalance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"isContractActive","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"_amount","type":"uint256"}],"name":"withdrawFunds","outputs":[],"stateMutability":"nonpayable","type":"function"},{"stateMutability":"payable","type":"receive"}]
+        async function connectWallet() {
+            if (window.ethereum) {
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                signer = provider.getSigner();
+                const account = await signer.getAddress();
+                document.getElementById("account").innerText = account;
+
+                contract = new ethers.Contract(contractAddress, abi, signer);
+                alert("MetaMask connected!");
+            } else {
+                alert("Please install MetaMask!");
+            }
+        }
+
+        async function playGame() {
+            const betAmount = document.getElementById("betAmount").value;
+            const choice = parseInt(document.getElementById("choice").value);
+
+            if (!betAmount || isNaN(choice)) {
+                alert("Please enter valid bet amount and choice.");
+                return;
+            }
+
+            try {
+                const tx = await contract.flip(ethers.utils.parseEther(betAmount), choice, {
+                    value: ethers.utils.parseEther(betAmount)
+                });
+                const receipt = await tx.wait();
+                document.getElementById("gameResult").innerText = "Game played successfully!";
+                console.log(receipt);
+            } catch (error) {
+                console.error(error);
+                alert("Error playing the game. Check console for details.");
+            }
+        }
+
+        async function depositFunds() {
+            try {
+                const tx = await signer.sendTransaction({
+                    to: contractAddress,
+                    value: ethers.utils.parseEther("1") 
+                });
+                await tx.wait();
+                alert("Funds deposited successfully!");
+            } catch (error) {
+                console.error(error);
+                alert("Error depositing funds. Check console for details.");
+            }
+        }
+
+        async function withdrawFunds() {
+            const amount = document.getElementById("withdrawAmount").value;
+
+            if (!amount) {
+                alert("Please enter a valid withdraw amount.");
+                return;
+            }
+
+            try {
+                const tx = await contract.withdrawFunds(ethers.utils.parseEther(amount));
+                await tx.wait();
+                alert("Funds withdrawn successfully!");
+            } catch (error) {
+                console.error(error);
+                alert("Error withdrawing funds. Check console for details.");
+            }
+        }
+
+        async function getContractBalance() {
+            try {
+                const balance = await contract.getContractBalance();
+                document.getElementById("contractBalance").innerText = ethers.utils.formatEther(balance) + " ETH";
+            } catch (error) {
+                console.error(error);
+                alert("Error fetching contract balance. Check console for details.");
+            }
+        }
+    </script>
 </body>
 </html>
